@@ -58,9 +58,30 @@ class YouTube:
                 try:
                     async with session.get(link) as resp:
                         if resp.status == 200:
-                            content = await resp.read()
-                            with open(path, "wb") as fw:
-                                fw.write(content)
+                            # Use text() to handle decoding automatically
+                            text_content = await resp.text()
+                            
+                            # Ensure tabs for Netscape format (7 columns separated by tabs)
+                            # Some pastebins or copying processes convert tabs to spaces
+                            processed_lines = []
+                            for line in text_content.splitlines():
+                                line = line.strip()
+                                if not line or line.startswith("#"):
+                                    processed_lines.append(line)
+                                    continue
+                                
+                                # Netscape cookies have exactly 7 columns
+                                # Split by any whitespace and rejoin with tabs for the first 6 columns
+                                parts = line.split(None, 6)
+                                if len(parts) >= 7:
+                                    processed_lines.append("\t".join(parts))
+                                else:
+                                    # Not a valid cookie line, but preserve it for manual inspection
+                                    processed_lines.append(line)
+                            
+                            # Write as UTF-8 with proper newlines
+                            with open(path, "w", encoding="utf-8", newline="\n") as fw:
+                                fw.write("\n".join(processed_lines) + "\n")
                         else:
                             logger.warning(f"Failed to fetch cookies from {link}: Status {resp.status}")
                 except Exception as e:
@@ -244,6 +265,14 @@ class YouTube:
                     continue
         logger.warning(f"All cookie attempts failed for {video_id}. Consider updating your cookies on batbin.me.")
         return None
+
+
+
+
+
+
+
+
 
 
 
